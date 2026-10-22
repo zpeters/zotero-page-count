@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Page Count for Zotero</title>
+<meta name="description" content="A Zotero plugin that adds a #Pages column: page ranges, page fields, or the PDF itself.">
+<meta property="og:title" content="Page Count for Zotero">
+<meta property="og:description" content="See how long every paper is, right in your item list.">
+<link rel="icon" href="page-count.svg" type="image/svg+xml">
+<link rel="preload" href="fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face {
+	font-family: "Geist";
+	src: url("fonts/geist-latin-wght-normal.woff2") format("woff2");
+	font-weight: 100 900;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Geist Mono";
+	src: url("fonts/geist-mono-latin-wght-normal.woff2") format("woff2");
+	font-weight: 100 900;
+	font-display: swap;
+}
+
+/* One accent (teal), zinc neutrals, one radius (12px). */
+:root {
+	--bg: #fafafa;
+	--surface: #f1f1f3;
+	--text: #18181b;
+	--muted: #52525b;
+	--line: #e4e4e7;
+	--accent: #0f766e;
+	--accent-text: #fafafa;
+	--radius: 12px;
+	color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+	:root {
+		--bg: #0f0f11;
+		--surface: #1a1a1e;
+		--text: #f4f4f5;
+		--muted: #a1a1aa;
+		--line: #27272a;
+		--accent: #5eead4;
+		--accent-text: #18181b;
+	}
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+	margin: 0;
+	background: var(--bg);
+	color: var(--text);
+	font: 400 1rem/1.6 "Geist", system-ui, sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+a { color: inherit; }
+code {
+	font-family: "Geist Mono", ui-monospace, monospace;
+	font-size: 0.9em;
+	background: var(--surface);
+	border-radius: 6px;
+	padding: 0.1em 0.4em;
+	white-space: nowrap;
+}
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+/* Nav */
+nav { height: 68px; display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; }
+.brand img { width: 22px; height: 22px; }
+nav a.gh { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+nav a.gh:hover { color: var(--text); }
+
+/* Hero */
+.hero { padding: 72px 0 56px; }
+.hero h1 {
+	font-size: clamp(2.4rem, 6vw, 3.8rem);
+	line-height: 1.05;
+	letter-spacing: -0.02em;
+	margin: 0 0 20px;
+	font-weight: 650;
+	max-width: 14ch;
+}
+.lede { font-size: 1.15rem; color: var(--muted); max-width: 52ch; margin: 0 0 32px; }
+.ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn {
+	display: inline-block;
+	padding: 12px 20px;
+	border-radius: var(--radius);
+	text-decoration: none;
+	font-weight: 550;
+	border: 1px solid var(--line);
+}
+.btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.btn.secondary { background: transparent; }
+
+/* Sample list */
+.sample {
+	margin-top: 56px;
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	overflow: hidden;
+	font-size: 0.95rem;
+}
+.sample .row {
+	display: grid;
+	grid-template-columns: 1fr 88px 70px;
+	gap: 16px;
+	padding: 12px 20px;
+	border-top: 1px solid var(--line);
+	align-items: center;
+}
+.sample .row:first-child { border-top: 0; }
+.sample .head { color: var(--muted); font-size: 0.85rem; }
+.sample .num { text-align: right; font-family: "Geist Mono", ui-monospace, monospace; }
+.sample .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+h2 { font-size: 1.7rem; letter-spacing: -0.01em; margin: 0 0 24px; font-weight: 600; }
+
+/* Sources */
+.sources { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.source {
+	background: var(--surface);
+	border: 1px solid var(--line);
+	border-radius: var(--radius);
+	padding: 22px;
+}
+.source .n { color: var(--accent); font-family: "Geist Mono", ui-monospace, monospace; font-size: 0.85rem; }
+.source h3 { margin: 6px 0 8px; font-size: 1.1rem; }
+.source p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+/* Install */
+.steps { margin: 0; padding-left: 1.2em; }
+.steps li { margin-bottom: 10px; }
+
+footer { padding: 32px 0 48px; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--line); }
+
+@media (max-width: 760px) {
+	.sources { grid-template-columns: 1fr; }
+	.hero { padding: 48px 0 40px; }
+	.wrap { padding: 0 16px; }
+	.sample .row { grid-template-columns: 1fr 64px; }
+	.sample .row .pdf { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+	<nav>
+		<a class="brand" href="./"><img src="page-count.svg" alt="">Page Count</a>
+		<a class="gh" href="https://github.com/zpeters/zotero-page-count">GitHub</a>
+	</nav>
+
+	<header class="hero">
+		<h1>Know how long every paper is.</h1>
+		<p class="lede">Page Count adds a <code>#Pages</code> column to your Zotero item list. It reads the page range, the page field, or the PDF itself.</p>
+		<div class="ctas">
+			<a class="btn primary" href="https://github.com/zpeters/zotero-page-count/releases/latest">Download</a>
+			<a class="btn secondary" href="https://github.com/zpeters/zotero-page-count">View source</a>
+		</div>
+
+		<div class="sample" aria-label="Example of the #Pages column">
+			<div class="row head"><span>Title</span><span class="num">#Pages</span><span class="num pdf">Source</span></div>
+			<div class="row"><span class="title">Deep learning</span><span class="num">—</span><span class="num pdf">PDF</span></div>
+			<div class="row"><span class="title">Binary B-trees for virtual memory</span><span class="num">9</span><span class="num pdf">pages</span></div>
+			<div class="row"><span class="title">Communicating sequential processes</span><span class="num">12</span><span class="num pdf">PDF</span></div>
+		</div>
+	</header>
+</div>
+
+<section>
+	<div class="wrap">
+		<h2>Three places to find the count.</h2>
+		<div class="sources">
+			<div class="source">
+				<span class="n">01</span>
+				<h3>Page range</h3>
+				<p>A <code>pages</code> value such as <code>12–19</code> counts as 8 pages. Lists such as <code>12, 14–16</code> work too.</p>
+			</div>
+			<div class="source">
+				<span class="n">02</span>
+				<h3>Page field</h3>
+				<p>If there is no range, the plugin uses the <code>numPages</code> field.</p>
+			</div>
+			<div class="source">
+				<span class="n">03</span>
+				<h3>The PDF</h3>
+				<p>Otherwise it uses the page count Zotero stores for the item's oldest PDF.</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section>
+	<div class="wrap">
+		<h2>Install in a minute.</h2>
+		<ol class="steps">
+			<li>Download <code>page-count.xpi</code> from the <a href="https://github.com/zpeters/zotero-page-count/releases/latest">latest release</a>.</li>
+			<li>In Zotero, open <strong>Tools → Plugins</strong>.</li>
+			<li>Click the gear icon, choose <strong>Install Plugin From File…</strong>, and select the file.</li>
+			<li>Right-click the column header of your item list and choose <strong>#Pages</strong>.</li>
+		</ol>
+	</div>
+</section>
+
+<footer>
+	<div class="wrap">
+		Page Count is MIT licensed. Made for Zotero 7 and later.
+	</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "Page Count",
+  "version": "0.1.0",
+  "description": "Adds a #Pages column to the item list: from the page range, the numPages field, or the PDF",
+  "author": "Zach Peters",
+  "homepage_url": "https://zpeters.github.io/zotero-page-count/",
+  "icons": {
+    "48": "content/icons/page-count.svg",
+    "96": "content/icons/page-count.svg"
+  },
+  "applications": {
+    "zotero": {
+      "id": "page-count@zpeters",
+      "update_url": "https://github.com/zpeters/zotero-page-count/releases/latest/download/update.json",
+      "strict_min_version": "7.0",
+      "strict_max_version": "10.*"
+    }
+  }
+}

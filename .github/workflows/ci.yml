@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Publish a release on GitHub (Releases > Draft a new release) to build
+  # the .xpi and attach it to that release.
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and attach assets to (for example v0.1.0). Leave empty to only build."
+        required: false
+
+permissions:
+  contents: write
+
+env:
+  # Set when this run attaches assets: a published release, or a manual run with a tag.
+  RELEASE_TAG: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_TAG || github.ref }}
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check and build
+        run: nix develop --command just check build
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: page-count
+          path: |
+            dist/page-count.xpi
+            dist/update.json
+
+      - name: Check tag matches manifest version
+        if: env.RELEASE_TAG != ''
+        run: |
+          version=$(jq -r .version src/manifest.json)
+          if [ "v$version" != "$RELEASE_TAG" ]; then
+            echo "Tag $RELEASE_TAG does not match manifest version $version" >&2
+            exit 1
+          fi
+
+      # The release normally exists already (it triggered this run). The
+      # create branch covers a manual run for a tag that has no release yet.
+      - name: Publish release
+        if: env.RELEASE_TAG != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          assets=(dist/page-count.xpi dist/update.json)
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --title "$RELEASE_TAG" --generate-notes
+          fi
